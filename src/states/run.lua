@@ -43,6 +43,8 @@ function RunState.new(ctx, payload)
       mod = Ops.defaultMod(),
       boons = {},
       takenBoons = {},
+      damageNumbers = {},
+      corpses = {},
       enemies = {},
       spawnCursor = 1,
       waveClock = 0,
@@ -208,6 +210,20 @@ function RunState:onEnemyKilled(e)
   self:addShake(0.05, 2 + e.score)
   self:addHitstop(0.02)
   self:emitSfx("kill")
+
+  -- Persistent corpse + blood pool
+  table.insert(run.corpses, {
+    x = e.x,
+    y = e.y,
+    color = e.color,
+    age = 0,
+    maxAge = 7.0,
+    bloodSize = 10 + (e.score or 1) * 4,
+  })
+  -- cap corpses to prevent unbounded growth
+  if #run.corpses > 260 then
+    table.remove(run.corpses, 1)
+  end
 end
 
 -- Layout constants for the phalanx (must match draw code)
@@ -280,8 +296,13 @@ function RunState:updateEnemies(dt)
 
     -- bleed tick
     if e.bleedTimer and e.bleedTimer > 0 then
+      local before = e.hp
       e.hp = e.hp - (e.bleedDps or 0) * dt
       e.bleedTimer = e.bleedTimer - dt
+      local diff = math.floor(before) - math.floor(e.hp)
+      if diff > 0 then
+        self:spawnDamageNumber(e.x, e.y - 6, diff, false)
+      end
     end
 
     -- funnel: clamp y to the corridor at the enemy's current x
@@ -300,16 +321,19 @@ function RunState:updateEnemies(dt)
       end
       if e.x <= frontX then
         e.x = frontX
-        local mul = (run.mode == "charge") and run.mod.chargeLossMul or run.mod.holdLossMul
-        local hpPer = tuning.spartan.spartanHp * run.mod.spartanHpMul
-        run.rowDeath[row] = run.rowDeath[row] + e.damage * mul * dt
-        while run.rowDeath[row] >= hpPer and run.rows[row] > 0 do
-          run.rowDeath[row] = run.rowDeath[row] - hpPer
-          run.rows[row] = run.rows[row] - 1
-          run.hitFlash = math.max(run.hitFlash, 0.18)
-          self:addShake(0.06, 3)
-          local sx, sy = self:phalanxLayout()
-          self:spawnBlood(sx + (PHALANX_COLS - 1) * PHALANX_SPACING_X, sy + (row - 1) * PHALANX_SPACING_Y, 8)
+        -- Spartans are invulnerable while charging.
+        if run.mode ~= "charge" then
+          local mul = run.mod.holdLossMul
+          local hpPer = tuning.spartan.spartanHp * run.mod.spartanHpMul
+          run.rowDeath[row] = run.rowDeath[row] + e.damage * mul * dt
+          while run.rowDeath[row] >= hpPer and run.rows[row] > 0 do
+            run.rowDeath[row] = run.rowDeath[row] - hpPer
+            run.rows[row] = run.rows[row] - 1
+            run.hitFlash = math.max(run.hitFlash, 0.18)
+            self:addShake(0.06, 3)
+            local sx, sy = self:phalanxLayout()
+            self:spawnBlood(sx + (PHALANX_COLS - 1) * PHALANX_SPACING_X, sy + (row - 1) * PHALANX_SPACING_Y, 8)
+          end
         end
       end
     else
@@ -328,6 +352,15 @@ function RunState:updateEnemies(dt)
   run.spartans = self:spartansAlive()
 end
 
+function RunState:dealDamage(target, dmg, crit)
+  local prev = target.hp
+  target.hp = target.hp - dmg
+  local diff = math.floor(prev) - math.floor(target.hp)
+  if diff > 0 then
+    self:spawnDamageNumber(target.x, target.y, diff, crit)
+  end
+end
+
 function RunState:applySpartanDamage(dt)
   local run = self.run
   local mod = run.mod
@@ -335,17 +368,14 @@ function RunState:applySpartanDamage(dt)
   local modeMul = (run.mode == "charge") and mod.chargeDpsMul or mod.holdDpsMul
   baseDps = baseDps * modeMul * mod.allDpsMul
 
-  -- combo scaling
   if mod.comboDamageBonus > 0 then
     baseDps = baseDps * (1 + run.combo * mod.comboDamageBonus)
   end
 
-  -- last stand
   if mod.lastStandThreshold > 0 and run.spartans <= mod.lastStandThreshold then
     baseDps = baseDps * mod.lastStandMul
   end
 
-  -- burst
   if run.burst then
     local burstMul = tuning.rage.burstMultiplier + mod.burstMulBonus
     baseDps = baseDps * burstMul
@@ -371,12 +401,12 @@ function RunState:applySpartanDamage(dt)
     for i = 1, n do
       local target = engaged[i]
       local dmg = each * dt
-      -- crit
+      local isCrit = false
       if mod.critChance > 0 and run.rng:next() < mod.critChance then
         dmg = dmg * mod.critMul
+        isCrit = true
       end
-      target.hp = target.hp - dmg
-      -- apply bleed
+      self:dealDamage(target, dmg, isCrit)
       if mod.bleedDps > 0 then
         local bdps = mod.bleedDps * mod.bleedDpsMul
         if (target.bleedDps or 0) < bdps then target.bleedDps = bdps end
@@ -435,6 +465,47 @@ function RunState:updateBoss(dt)
   end
 end
 
+function RunState:spawnDamageNumber(x, y, amount, crit)
+  local r = self.run
+  local n = math.floor(amount + 0.5)
+  if n <= 0 then return end
+  table.insert(r.damageNumbers, {
+    x = x + r.rng:range(-10, 10),
+    y = y - 6,
+    vx = r.rng:range(-30, 30),
+    vy = -52,
+    life = 0.7,
+    maxLife = 0.7,
+    text = tostring(n),
+    crit = crit or false,
+  })
+end
+
+function RunState:updateDamageNumbers(dt)
+  local r = self.run
+  for i = #r.damageNumbers, 1, -1 do
+    local d = r.damageNumbers[i]
+    d.life = d.life - dt
+    d.x = d.x + d.vx * dt
+    d.y = d.y + d.vy * dt
+    d.vy = d.vy + 120 * dt
+    if d.life <= 0 then
+      table.remove(r.damageNumbers, i)
+    end
+  end
+end
+
+function RunState:updateCorpses(dt)
+  local r = self.run
+  for i = #r.corpses, 1, -1 do
+    local c = r.corpses[i]
+    c.age = c.age + dt
+    if c.age >= c.maxAge then
+      table.remove(r.corpses, i)
+    end
+  end
+end
+
 function RunState:updateFx(dt)
   local run = self.run
   if run.shakeTime > 0 then
@@ -452,6 +523,9 @@ function RunState:updateFx(dt)
       table.remove(run.particles, i)
     end
   end
+
+  self:updateDamageNumbers(dt)
+  self:updateCorpses(dt)
 end
 
 function RunState:updateWarnings()
@@ -601,6 +675,9 @@ function RunState:drawBattlefield()
 
   -- cliffs of the strait
   self:drawStrait()
+
+  -- corpses and blood pools (under live enemies)
+  self:drawCorpses()
 
   -- phalanx: per-row, drawn from front (col 24) back. Front line stays at col 24.
   local startX, startY = self:phalanxLayout()
@@ -759,6 +836,38 @@ function RunState:drawParticles()
   end
 end
 
+function RunState:drawCorpses()
+  local run = self.run
+  for _, c in ipairs(run.corpses) do
+    local lifeT = math.max(0, 1 - c.age / c.maxAge)
+    -- blood pool fades slower than corpse
+    local poolA = math.min(1, lifeT * 1.3) * 0.5
+    love.graphics.setColor(0.36, 0.04, 0.04, poolA)
+    love.graphics.ellipse("fill", c.x + 7, c.y + 10, c.bloodSize, c.bloodSize * 0.42)
+    -- corpse desaturated
+    local r, g, b = c.color[1], c.color[2], c.color[3]
+    local grey = (r + g + b) / 3 * 0.55
+    love.graphics.setColor(grey, grey, grey, lifeT)
+    love.graphics.rectangle("fill", c.x, c.y - 8, 14, 16)
+  end
+end
+
+function RunState:drawDamageNumbers()
+  local r = self.run
+  local f = self.ctx.fonts
+  for _, d in ipairs(r.damageNumbers) do
+    local a = math.max(0, d.life / d.maxLife)
+    if d.crit then
+      love.graphics.setFont(f.md)
+      love.graphics.setColor(1.0, 0.85, 0.30, a)
+    else
+      love.graphics.setFont(f.sm)
+      love.graphics.setColor(1.0, 0.95, 0.82, a)
+    end
+    love.graphics.print(d.text, d.x, d.y)
+  end
+end
+
 function RunState:draw()
   local run = self.run
   local ox, oy = 0, 0
@@ -771,6 +880,7 @@ function RunState:draw()
   love.graphics.translate(ox, oy)
   self:drawBattlefield()
   self:drawParticles()
+  self:drawDamageNumbers()
   self:drawUI()
   love.graphics.pop()
 end
