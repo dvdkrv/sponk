@@ -1,5 +1,3 @@
-local MenuState = require("src.states.menu")
-
 local GameOverState = {}
 GameOverState.__index = GameOverState
 
@@ -46,6 +44,7 @@ function GameOverState:keypressed(key)
     local RunState = require("src.states.run")
     self.ctx.manager:switch(RunState.new(self.ctx, { seed = os.time() }))
   elseif key == "escape" then
+    local MenuState = require("src.states.menu")
     self.ctx.manager:switch(MenuState.new(self.ctx))
   end
 end

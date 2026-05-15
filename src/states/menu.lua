@@ -1,5 +1,3 @@
-local RunState = require("src.states.run")
-
 local MenuState = {}
 MenuState.__index = MenuState
 
@@ -34,6 +32,7 @@ end
 
 function MenuState:keypressed(key)
   if key == "return" or key == "kpenter" then
+    local RunState = require("src.states.run")
     self.ctx.manager:switch(RunState.new(self.ctx, { seed = os.time() }))
   end
 end

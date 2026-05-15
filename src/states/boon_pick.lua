@@ -1,5 +1,3 @@
-local RunState = require("src.states.run")
-
 local BoonPickState = {}
 BoonPickState.__index = BoonPickState
 
@@ -43,6 +41,7 @@ function BoonPickState:keypressed(key)
   if index and self.choices[index] then
     local boon = self.choices[index]
     boon.apply(self.run)
+    local RunState = require("src.states.run")
     self.ctx.manager:switch(RunState.new(self.ctx, { continueRun = self.run }))
   end
 end
