@@ -10,12 +10,6 @@ local GameOverState = require("src.states.game_over")
 local RunState = {}
 RunState.__index = RunState
 
-local function laneY(index)
-  local bf = tuning.battlefield
-  local step = (bf.bottomY - bf.topY) / (bf.laneCount - 1)
-  return bf.topY + (index - 1) * step
-end
-
 function RunState.new(ctx, payload)
   local self = setmetatable({}, RunState)
   self.ctx = ctx
@@ -99,9 +93,23 @@ function RunState:currentWave()
   return waves[self.run.waveIndex]
 end
 
+function RunState:gaussianY()
+  local run = self.run
+  local bf = tuning.battlefield
+  -- Box-Muller via the run's deterministic RNG
+  local u1 = math.max(1e-6, run.rng:next())
+  local u2 = run.rng:next()
+  local z = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+  local center = (bf.topY + bf.bottomY) / 2
+  local stdev = (bf.bottomY - bf.topY) / 6
+  local y = center + z * stdev
+  if y < bf.topY + 10 then y = bf.topY + 10 end
+  if y > bf.bottomY - 10 then y = bf.bottomY - 10 end
+  return y
+end
+
 function RunState:spawnEnemy(kind)
   local run = self.run
-  local lane = run.rng:range(1, tuning.battlefield.laneCount)
   local data = enemyData[kind]
   local scale = 1 + (run.waveIndex - 1) * 0.12
   table.insert(run.enemies, {
@@ -110,7 +118,7 @@ function RunState:spawnEnemy(kind)
     speed = data.speed * (1 + (run.waveIndex - 1) * 0.04),
     damage = data.damage * scale,
     score = data.score,
-    lane = lane,
+    y = self:gaussianY(),
     x = tuning.battlefield.rightX,
     color = data.color,
   })
@@ -162,7 +170,7 @@ function RunState:onEnemyKilled(e)
   local rageGain = tuning.rage.gainPerKill * run.mod.rageGainMul
   run.rage = math.min(tuning.rage.max, run.rage + rageGain)
 
-  self:spawnBlood(e.x, laneY(e.lane), 6 + e.score * 2)
+  self:spawnBlood(e.x, e.y, 6 + e.score * 2)
   self:addShake(0.05, 2 + e.score)
   self:addHitstop(0.02)
   self:emitSfx("kill")
@@ -198,7 +206,8 @@ function RunState:updateEnemies(dt)
     end
     if e.x <= frontX then
       e.x = frontX
-      run.pendingDeaths = run.pendingDeaths + e.damage * dt
+      local mul = (run.mode == "charge") and run.mod.chargeLossMul or run.mod.holdLossMul
+      run.pendingDeaths = run.pendingDeaths + e.damage * mul * dt
       run.hitFlash = math.max(run.hitFlash, 0.12)
       self:addShake(0.03, 2)
     end
@@ -212,14 +221,11 @@ end
 function RunState:applySpartanDamage(dt)
   local run = self.run
   local baseDps = tuning.spartan.holdDps
-  local lossRate = tuning.spartan.holdLossRate
 
   if run.mode == "charge" then
     baseDps = tuning.spartan.chargeDps * run.mod.chargeDpsMul
-    lossRate = tuning.spartan.chargeLossRate * run.mod.chargeLossMul
   else
     baseDps = baseDps * run.mod.holdDpsMul
-    lossRate = lossRate * run.mod.holdLossMul
   end
 
   if run.burst then
@@ -239,14 +245,16 @@ function RunState:applySpartanDamage(dt)
     end
   end
 
+  -- Front-N targeting (closest to wall first) so DPS doesn't dilute infinitely.
   if #engaged > 0 then
-    local each = baseDps / #engaged
-    for _, e in ipairs(engaged) do
-      e.hp = e.hp - each * dt
+    table.sort(engaged, function(a, b) return a.x < b.x end)
+    local maxTargets = (run.mode == "charge") and 8 or 4
+    local n = math.min(#engaged, maxTargets)
+    local each = baseDps / n
+    for i = 1, n do
+      engaged[i].hp = engaged[i].hp - each * dt
     end
   end
-
-  run.pendingDeaths = run.pendingDeaths + lossRate * dt
 end
 
 function RunState:resolveSpartanDeaths()
@@ -282,10 +290,6 @@ function RunState:updateBoss(dt)
   end
 
   run.bossHP = math.max(0, run.bossHP - bossDps * dt)
-
-  local passiveLoss = (run.mode == "charge" and tuning.spartan.chargeLossRate or tuning.spartan.holdLossRate)
-  passiveLoss = passiveLoss * (run.mode == "charge" and run.mod.chargeLossMul or run.mod.holdLossMul)
-  run.pendingDeaths = run.pendingDeaths + passiveLoss * dt
 
   if run.bossStrikeClock >= 2.5 then
     run.bossStrikeClock = run.bossStrikeClock - 2.5
@@ -424,12 +428,9 @@ function RunState:drawBattlefield()
   love.graphics.setColor(0.13, 0.06, 0.08)
   love.graphics.rectangle("fill", bf.leftX + 480, bf.topY - 50, bf.rightX - (bf.leftX + 480), bf.bottomY - bf.topY + 100)
 
-  -- lanes
-  for lane = 1, bf.laneCount do
-    local y = laneY(lane)
-    love.graphics.setColor(0.2, 0.1, 0.1)
-    love.graphics.rectangle("fill", bf.leftX, y - 3, bf.rightX - bf.leftX, 6)
-  end
+  -- subtle ground band where combat happens
+  love.graphics.setColor(0.16, 0.08, 0.08)
+  love.graphics.rectangle("fill", bf.leftX + 480, bf.topY - 10, bf.rightX - (bf.leftX + 480), bf.bottomY - bf.topY + 20)
 
   -- spartans as a static phalanx, filled back-to-front so losses thin the front line
   local visual = math.min(run.spartans, 300)
@@ -461,11 +462,10 @@ function RunState:drawBattlefield()
     end
   end
 
-  -- enemies
+  -- enemies (continuous y from Gaussian, no lanes)
   for _, e in ipairs(run.enemies) do
-    local y = laneY(e.lane)
     love.graphics.setColor(e.color)
-    love.graphics.rectangle("fill", e.x, y - 10, 18, 20)
+    love.graphics.rectangle("fill", e.x, e.y - 8, 14, 16)
   end
 
   -- boss

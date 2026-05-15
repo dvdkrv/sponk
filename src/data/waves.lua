@@ -1,37 +1,35 @@
+-- Wave definitions are generated as dense, continuous streams.
+-- Each wave specifies arrival rates (per second) per enemy type.
+
+local function build(duration, rates)
+  local spawns = {}
+  for _, entry in ipairs(rates) do
+    local tname, rate = entry[1], entry[2]
+    local interval = 1 / rate
+    local t = 0.3 + math.random() * 0.6
+    while t < duration do
+      table.insert(spawns, { t = t, type = tname })
+      t = t + interval * (0.6 + math.random() * 0.8)
+    end
+  end
+  table.sort(spawns, function(a, b) return a.t < b.t end)
+  return { duration = duration, spawns = spawns }
+end
+
 return {
-  {
-    duration = 18,
-    spawns = {
-      { t = 0.5, type = "soldier" }, { t = 1.2, type = "soldier" }, { t = 2.0, type = "soldier" },
-      { t = 3.0, type = "archer" }, { t = 4.5, type = "soldier" }, { t = 5.4, type = "soldier" },
-      { t = 6.3, type = "archer" }, { t = 7.2, type = "soldier" }, { t = 8.6, type = "brute" },
-      { t = 10.0, type = "soldier" }, { t = 11.2, type = "archer" }, { t = 12.6, type = "soldier" },
-      { t = 14.2, type = "soldier" }, { t = 16.0, type = "brute" },
-    },
-  },
-  {
-    duration = 20,
-    spawns = {
-      { t = 0.4, type = "soldier" }, { t = 1.0, type = "soldier" }, { t = 1.6, type = "archer" },
-      { t = 2.2, type = "soldier" }, { t = 3.2, type = "archer" }, { t = 4.4, type = "brute" },
-      { t = 5.2, type = "soldier" }, { t = 6.0, type = "soldier" }, { t = 6.8, type = "archer" },
-      { t = 8.2, type = "brute" }, { t = 9.6, type = "soldier" }, { t = 10.4, type = "soldier" },
-      { t = 11.0, type = "archer" }, { t = 12.3, type = "archer" }, { t = 13.2, type = "soldier" },
-      { t = 14.1, type = "brute" }, { t = 15.4, type = "soldier" }, { t = 16.1, type = "archer" },
-      { t = 17.5, type = "brute" }
-    },
-  },
-  {
-    duration = 22,
-    spawns = {
-      { t = 0.5, type = "brute" }, { t = 1.2, type = "archer" }, { t = 2.0, type = "soldier" },
-      { t = 2.6, type = "soldier" }, { t = 3.5, type = "archer" }, { t = 4.1, type = "brute" },
-      { t = 5.0, type = "soldier" }, { t = 5.8, type = "archer" }, { t = 6.6, type = "soldier" },
-      { t = 7.4, type = "soldier" }, { t = 8.4, type = "brute" }, { t = 9.4, type = "archer" },
-      { t = 10.2, type = "archer" }, { t = 11.0, type = "soldier" }, { t = 11.8, type = "soldier" },
-      { t = 12.7, type = "brute" }, { t = 13.9, type = "archer" }, { t = 15.1, type = "soldier" },
-      { t = 16.4, type = "brute" }, { t = 17.8, type = "soldier" }, { t = 19.0, type = "archer" },
-      { t = 20.2, type = "brute" }
-    },
-  },
+  build(20, {
+    { "soldier", 1.8 },
+    { "archer", 0.9 },
+    { "brute",  0.30 },
+  }),
+  build(22, {
+    { "soldier", 2.4 },
+    { "archer", 1.2 },
+    { "brute",  0.45 },
+  }),
+  build(24, {
+    { "soldier", 3.0 },
+    { "archer", 1.6 },
+    { "brute",  0.65 },
+  }),
 }
