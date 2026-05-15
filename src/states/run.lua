@@ -70,6 +70,7 @@ function RunState.new(ctx, payload)
       warning200 = false,
       warning100 = false,
       warning50 = false,
+      frontAdvance = 0,
     }
   end
 
@@ -167,21 +168,42 @@ function RunState:onEnemyKilled(e)
   self:emitSfx("kill")
 end
 
+-- Layout constants for the phalanx (must match draw code)
+local PHALANX_COLS = 25
+local PHALANX_ROWS = 12
+local PHALANX_SPACING_X = 14
+local PHALANX_SPACING_Y = 18
+local PHALANX_START_OFFSET_X = 30
+local PHALANX_BASE_PAD = 6
+
+function RunState:frontMetrics()
+  local run = self.run
+  local bf = tuning.battlefield
+  local startX = bf.leftX + PHALANX_START_OFFSET_X
+  local fieldW = (PHALANX_COLS - 1) * PHALANX_SPACING_X
+  local baseFront = startX + fieldW + PHALANX_BASE_PAD
+  local frontX = baseFront + (run.frontAdvance or 0)
+  local engageRange = run.mode == "charge" and 220 or 90
+  return frontX, engageRange
+end
+
 function RunState:updateEnemies(dt)
   local run = self.run
-  local frontX = tuning.battlefield.leftX + 396
+  local frontX = self:frontMetrics()
   for i = #run.enemies, 1, -1 do
     local e = run.enemies[i]
-    e.x = e.x - e.speed * dt
+    if e.x > frontX then
+      e.x = e.x - e.speed * dt
+      if e.x < frontX then e.x = frontX end
+    end
     if e.x <= frontX then
+      e.x = frontX
       run.pendingDeaths = run.pendingDeaths + e.damage * dt
-      run.hitFlash = 0.12
+      run.hitFlash = math.max(run.hitFlash, 0.12)
       self:addShake(0.03, 2)
     end
-    if e.x <= tuning.battlefield.leftX - 40 or e.hp <= 0 then
-      if e.hp <= 0 then
-        self:onEnemyKilled(e)
-      end
+    if e.hp <= 0 then
+      self:onEnemyKilled(e)
       table.remove(run.enemies, i)
     end
   end
@@ -193,10 +215,8 @@ function RunState:applySpartanDamage(dt)
   local lossRate = tuning.spartan.holdLossRate
 
   if run.mode == "charge" then
-    baseDps = tuning.spartan.chargeDps
-    lossRate = tuning.spartan.chargeLossRate
-    baseDps = baseDps * run.mod.chargeDpsMul
-    lossRate = lossRate * run.mod.chargeLossMul
+    baseDps = tuning.spartan.chargeDps * run.mod.chargeDpsMul
+    lossRate = tuning.spartan.chargeLossRate * run.mod.chargeLossMul
   else
     baseDps = baseDps * run.mod.holdDpsMul
     lossRate = lossRate * run.mod.holdLossMul
@@ -208,23 +228,21 @@ function RunState:applySpartanDamage(dt)
     if run.rage <= 0 then run.burst = false end
   end
 
-  -- distribute damage over nearest enemies in each lane
-  local perLane = {}
-  for lane = 1, tuning.battlefield.laneCount do
-    perLane[lane] = baseDps / tuning.battlefield.laneCount
+  -- Engage only enemies within range of the (moving) front line.
+  local frontX, engageRange = self:frontMetrics()
+  local engageMax = frontX + engageRange
+
+  local engaged = {}
+  for _, e in ipairs(run.enemies) do
+    if e.x <= engageMax then
+      table.insert(engaged, e)
+    end
   end
 
-  for lane = 1, tuning.battlefield.laneCount do
-    local target = nil
-    for _, e in ipairs(run.enemies) do
-      if e.lane == lane then
-        if not target or e.x < target.x then
-          target = e
-        end
-      end
-    end
-    if target then
-      target.hp = target.hp - perLane[lane] * dt
+  if #engaged > 0 then
+    local each = baseDps / #engaged
+    for _, e in ipairs(engaged) do
+      e.hp = e.hp - each * dt
     end
   end
 
@@ -331,6 +349,14 @@ function RunState:updateWarnings()
   end
 end
 
+function RunState:updateFrontAdvance(dt)
+  local run = self.run
+  local target = (run.mode == "charge") and 90 or 0
+  local rate = 6
+  local delta = target - run.frontAdvance
+  run.frontAdvance = run.frontAdvance + delta * math.min(1, dt * rate)
+end
+
 function RunState:update(dt)
   local run = self.run
 
@@ -343,6 +369,7 @@ function RunState:update(dt)
 
   run.time = run.time + dt
   run.score = run.score + tuning.scoring.survivePerSecond * dt
+  self:updateFrontAdvance(dt)
 
   if run.hitFlash > 0 then run.hitFlash = math.max(0, run.hitFlash - dt) end
   if run.warningTime > 0 then run.warningTime = math.max(0, run.warningTime - dt) end
@@ -404,43 +431,35 @@ function RunState:drawBattlefield()
     love.graphics.rectangle("fill", bf.leftX, y - 3, bf.rightX - bf.leftX, 6)
   end
 
-  -- spartans as a living phalanx (animated dots)
+  -- spartans as a static phalanx, filled back-to-front so losses thin the front line
   local visual = math.min(run.spartans, 300)
-  local cols = 25
-  local spacingX, spacingY = 14, 18
-  local fieldW = (cols - 1) * spacingX
-  local rowsTotal = math.ceil(300 / cols)
+  local cols = PHALANX_COLS
+  local rowsTotal = PHALANX_ROWS
+  local spacingX, spacingY = PHALANX_SPACING_X, PHALANX_SPACING_Y
   local fieldH = (rowsTotal - 1) * spacingY
-  local startX = bf.leftX + 30
+  local startX = bf.leftX + PHALANX_START_OFFSET_X
   local startY = bf.topY + ((bf.bottomY - bf.topY) - fieldH) / 2
-  local t = run.time
-  local mode = run.mode
-  local sway = (mode == "charge") and 6 or 2
-  local bobAmp = (mode == "charge") and 2.5 or 1.2
-  local bobSpeed = (mode == "charge") and 8 or 4
+  local advance = run.frontAdvance or 0
+  local frontCol = math.max(0, math.floor((visual - 1) / rowsTotal))
 
   for i = 1, visual do
-    local col = (i - 1) % cols
-    local row = math.floor((i - 1) / cols)
-    local phase = col * 0.3 + row * 0.7
-    local bx = math.sin(t * bobSpeed * 0.5 + phase) * sway
-    local by = math.sin(t * bobSpeed + phase) * bobAmp
-    local x = startX + col * spacingX + bx
-    local y = startY + row * spacingY + by
-    if mode == "charge" then
-      love.graphics.setColor(0.95, 0.35, 0.25)
+    local col = math.floor((i - 1) / rowsTotal)
+    local row = (i - 1) % rowsTotal
+    local isFront = (col == frontCol)
+    local x = startX + col * spacingX + (isFront and advance or 0)
+    local y = startY + row * spacingY
+    if isFront then
+      love.graphics.setColor(1.0, 0.55, 0.25)
+      love.graphics.rectangle("fill", x - 1, y - 1, 8, 8)
     else
-      love.graphics.setColor(0.85, 0.25, 0.25)
+      if run.mode == "charge" then
+        love.graphics.setColor(0.95, 0.35, 0.25)
+      else
+        love.graphics.setColor(0.85, 0.25, 0.25)
+      end
+      love.graphics.rectangle("fill", x, y, 6, 6)
     end
-    love.graphics.rectangle("fill", x, y, 6, 6)
   end
-
-  -- front line (positioned just past the phalanx)
-  local lineX = startX + fieldW + 22
-  love.graphics.setColor(0.55, 0.1, 0.1)
-  love.graphics.rectangle("fill", lineX, bf.topY - 20, 6, bf.bottomY - bf.topY + 40)
-  love.graphics.setColor(0.9, 0.2, 0.2)
-  love.graphics.rectangle("fill", lineX + 6, bf.topY - 20, 2, bf.bottomY - bf.topY + 40)
 
   -- enemies
   for _, e in ipairs(run.enemies) do
