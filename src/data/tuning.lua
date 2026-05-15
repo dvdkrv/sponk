@@ -8,10 +8,11 @@ return {
   },
   spartan = {
     startCount = 300,
-    holdDps = 22,
-    chargeDps = 62,
-    holdLossRate = 0.45,
-    chargeLossRate = 2.1,
+    holdDps = 35,
+    chargeDps = 95,
+    holdLossRate = 0.0,
+    chargeLossRate = 0.0,
+    spartanHp = 1.0,
   },
   rage = {
     max = 100,

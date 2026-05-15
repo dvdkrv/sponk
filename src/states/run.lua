@@ -65,11 +65,27 @@ function RunState.new(ctx, payload)
       warning100 = false,
       warning50 = false,
       frontAdvance = 0,
+      rows = nil,
+      rowDeath = nil,
     }
+    self.run.rows = {}
+    self.run.rowDeath = {}
+    for r = 1, 12 do
+      self.run.rows[r] = 25
+      self.run.rowDeath[r] = 0
+    end
   end
 
   self:initWaveIfNeeded()
   return self
+end
+
+function RunState:spartansAlive()
+  local total = 0
+  for r = 1, #self.run.rows do
+    total = total + self.run.rows[r]
+  end
+  return total
 end
 
 function RunState:initWaveIfNeeded()
@@ -184,38 +200,103 @@ local PHALANX_SPACING_Y = 18
 local PHALANX_START_OFFSET_X = 30
 local PHALANX_BASE_PAD = 6
 
-function RunState:frontMetrics()
-  local run = self.run
+function RunState:phalanxLayout()
   local bf = tuning.battlefield
   local startX = bf.leftX + PHALANX_START_OFFSET_X
+  local fieldH = (PHALANX_ROWS - 1) * PHALANX_SPACING_Y
+  local startY = bf.topY + ((bf.bottomY - bf.topY) - fieldH) / 2
   local fieldW = (PHALANX_COLS - 1) * PHALANX_SPACING_X
+  return startX, startY, fieldW, fieldH
+end
+
+function RunState:frontMetrics()
+  local run = self.run
+  local startX, _, fieldW = self:phalanxLayout()
   local baseFront = startX + fieldW + PHALANX_BASE_PAD
   local frontX = baseFront + (run.frontAdvance or 0)
   local engageRange = run.mode == "charge" and 220 or 90
   return frontX, engageRange
 end
 
+function RunState:rowForY(y)
+  local _, startY = self:phalanxLayout()
+  local r = math.floor((y - startY + PHALANX_SPACING_Y / 2) / PHALANX_SPACING_Y) + 1
+  if r < 1 then r = 1 end
+  if r > PHALANX_ROWS then r = PHALANX_ROWS end
+  return r
+end
+
+function RunState:corridorBounds(x)
+  local bf = tuning.battlefield
+  local _, startY = self:phalanxLayout()
+  local nearTop = startY - 14
+  local nearBot = startY + (PHALANX_ROWS - 1) * PHALANX_SPACING_Y + 14
+  local farTop = bf.topY - 40
+  local farBot = bf.bottomY + 40
+
+  local frontX = self:frontMetrics()
+  local farX = bf.rightX + 40
+
+  if x <= frontX then return nearTop, nearBot end
+  if x >= farX then return farTop, farBot end
+
+  -- ease (smoothstep) so funnel pinches harder near the front
+  local t = (x - frontX) / (farX - frontX)
+  t = t * t * (3 - 2 * t)
+  local top = nearTop + (farTop - nearTop) * t
+  local bot = nearBot + (farBot - nearBot) * t
+  return top, bot
+end
+
 function RunState:updateEnemies(dt)
   local run = self.run
   local frontX = self:frontMetrics()
+  local bf = tuning.battlefield
+
   for i = #run.enemies, 1, -1 do
     local e = run.enemies[i]
-    if e.x > frontX then
+
+    -- funnel: clamp y to the corridor at the enemy's current x
+    local topB, botB = self:corridorBounds(e.x)
+    if e.y < topB then e.y = topB end
+    if e.y > botB then e.y = botB end
+
+    local row = self:rowForY(e.y)
+    local rowAlive = run.rows[row] > 0
+
+    if rowAlive then
+      -- normal advance, stop at the wall, deal contact damage
+      if e.x > frontX then
+        e.x = e.x - e.speed * dt
+        if e.x < frontX then e.x = frontX end
+      end
+      if e.x <= frontX then
+        e.x = frontX
+        local mul = (run.mode == "charge") and run.mod.chargeLossMul or run.mod.holdLossMul
+        run.rowDeath[row] = run.rowDeath[row] + e.damage * mul * dt
+        while run.rowDeath[row] >= tuning.spartan.spartanHp and run.rows[row] > 0 do
+          run.rowDeath[row] = run.rowDeath[row] - tuning.spartan.spartanHp
+          run.rows[row] = run.rows[row] - 1
+          run.hitFlash = math.max(run.hitFlash, 0.18)
+          self:addShake(0.06, 3)
+          local sx, sy = self:phalanxLayout()
+          self:spawnBlood(sx + (PHALANX_COLS - 1) * PHALANX_SPACING_X, sy + (row - 1) * PHALANX_SPACING_Y, 8)
+        end
+      end
+    else
+      -- row collapsed: the persian streams through the breach
       e.x = e.x - e.speed * dt
-      if e.x < frontX then e.x = frontX end
     end
-    if e.x <= frontX then
-      e.x = frontX
-      local mul = (run.mode == "charge") and run.mod.chargeLossMul or run.mod.holdLossMul
-      run.pendingDeaths = run.pendingDeaths + e.damage * mul * dt
-      run.hitFlash = math.max(run.hitFlash, 0.12)
-      self:addShake(0.03, 2)
-    end
+
     if e.hp <= 0 then
       self:onEnemyKilled(e)
       table.remove(run.enemies, i)
+    elseif e.x < bf.leftX - 40 then
+      table.remove(run.enemies, i)
     end
   end
+
+  run.spartans = self:spartansAlive()
 end
 
 function RunState:applySpartanDamage(dt)
@@ -257,13 +338,19 @@ function RunState:applySpartanDamage(dt)
   end
 end
 
-function RunState:resolveSpartanDeaths()
+function RunState:killRandomSpartans(count)
   local run = self.run
-  if run.pendingDeaths >= 1 then
-    local deaths = math.floor(run.pendingDeaths)
-    run.pendingDeaths = run.pendingDeaths - deaths
-    run.spartans = math.max(0, run.spartans - deaths)
+  while count > 0 do
+    local alive = {}
+    for r = 1, #run.rows do
+      if run.rows[r] > 0 then table.insert(alive, r) end
+    end
+    if #alive == 0 then break end
+    local r = alive[run.rng:range(1, #alive)]
+    run.rows[r] = run.rows[r] - 1
+    count = count - 1
   end
+  run.spartans = self:spartansAlive()
 end
 
 function RunState:updateCombo(dt)
@@ -293,7 +380,7 @@ function RunState:updateBoss(dt)
 
   if run.bossStrikeClock >= 2.5 then
     run.bossStrikeClock = run.bossStrikeClock - 2.5
-    run.spartans = math.max(0, run.spartans - 6)
+    self:killRandomSpartans(6)
     run.hitFlash = 0.18
     self:addShake(0.12, 6)
     self:addHitstop(0.04)
@@ -405,7 +492,7 @@ function RunState:update(dt)
   end
 
   self:updateCombo(dt)
-  self:resolveSpartanDeaths()
+  run.spartans = self:spartansAlive()
   self:updateWarnings()
   self:updateFx(dt)
 
@@ -418,47 +505,90 @@ function RunState:update(dt)
   end
 end
 
+function RunState:drawStrait()
+  local bf = tuning.battlefield
+  local frontX = self:frontMetrics()
+  local farX = bf.rightX + 40
+  local samples = 30
+  local topRoof = bf.topY - 80
+  local botFloor = bf.bottomY + 80
+
+  love.graphics.setColor(0.10, 0.07, 0.06)
+
+  -- Top cliff: filled with vertical strips so polygon stays convex per-strip
+  local prevX = frontX
+  local prevTopB = select(1, self:corridorBounds(frontX))
+  for i = 1, samples do
+    local x = frontX + (farX - frontX) * (i / samples)
+    local topB = select(1, self:corridorBounds(x))
+    love.graphics.polygon("fill", prevX, topRoof, x, topRoof, x, topB, prevX, prevTopB)
+    prevX, prevTopB = x, topB
+  end
+
+  -- Bottom cliff
+  prevX = frontX
+  local _, prevBotB = self:corridorBounds(frontX)
+  for i = 1, samples do
+    local x = frontX + (farX - frontX) * (i / samples)
+    local _, botB = self:corridorBounds(x)
+    love.graphics.polygon("fill", prevX, prevBotB, x, botB, x, botFloor, prevX, botFloor)
+    prevX, prevBotB = x, botB
+  end
+
+  -- Inner edge highlight (rim of the pass)
+  love.graphics.setColor(0.26, 0.16, 0.10)
+  love.graphics.setLineWidth(2)
+  local edgeTop = {}
+  local edgeBot = {}
+  for i = 0, samples do
+    local x = frontX + (farX - frontX) * (i / samples)
+    local tb, bb = self:corridorBounds(x)
+    table.insert(edgeTop, x); table.insert(edgeTop, tb)
+    table.insert(edgeBot, x); table.insert(edgeBot, bb)
+  end
+  love.graphics.line(edgeTop)
+  love.graphics.line(edgeBot)
+  love.graphics.setLineWidth(1)
+end
+
 function RunState:drawBattlefield()
   local bf = tuning.battlefield
   local run = self.run
 
-  -- battlefield panels
+  -- Spartan camp panel (left of phalanx)
   love.graphics.setColor(0.10, 0.05, 0.05)
   love.graphics.rectangle("fill", bf.leftX, bf.topY - 50, 470, bf.bottomY - bf.topY + 100)
-  love.graphics.setColor(0.13, 0.06, 0.08)
+  -- strait floor (right of phalanx)
+  love.graphics.setColor(0.16, 0.10, 0.08)
   love.graphics.rectangle("fill", bf.leftX + 480, bf.topY - 50, bf.rightX - (bf.leftX + 480), bf.bottomY - bf.topY + 100)
 
-  -- subtle ground band where combat happens
-  love.graphics.setColor(0.16, 0.08, 0.08)
-  love.graphics.rectangle("fill", bf.leftX + 480, bf.topY - 10, bf.rightX - (bf.leftX + 480), bf.bottomY - bf.topY + 20)
+  -- cliffs of the strait
+  self:drawStrait()
 
-  -- spartans as a static phalanx, filled back-to-front so losses thin the front line
-  local visual = math.min(run.spartans, 300)
-  local cols = PHALANX_COLS
-  local rowsTotal = PHALANX_ROWS
+  -- phalanx: per-row, drawn from front (col 24) back. Front line stays at col 24.
+  local startX, startY = self:phalanxLayout()
   local spacingX, spacingY = PHALANX_SPACING_X, PHALANX_SPACING_Y
-  local fieldH = (rowsTotal - 1) * spacingY
-  local startX = bf.leftX + PHALANX_START_OFFSET_X
-  local startY = bf.topY + ((bf.bottomY - bf.topY) - fieldH) / 2
+  local cols = PHALANX_COLS
   local advance = run.frontAdvance or 0
-  local frontCol = math.max(0, math.floor((visual - 1) / rowsTotal))
 
-  for i = 1, visual do
-    local col = math.floor((i - 1) / rowsTotal)
-    local row = (i - 1) % rowsTotal
-    local isFront = (col == frontCol)
-    local x = startX + col * spacingX + (isFront and advance or 0)
-    local y = startY + row * spacingY
-    if isFront then
-      love.graphics.setColor(1.0, 0.55, 0.25)
-      love.graphics.rectangle("fill", x - 1, y - 1, 8, 8)
-    else
-      if run.mode == "charge" then
-        love.graphics.setColor(0.95, 0.35, 0.25)
+  for r = 1, PHALANX_ROWS do
+    local size = run.rows[r]
+    for c = 0, size - 1 do
+      local col = (cols - 1) - c
+      local isFront = (c == 0)
+      local x = startX + col * spacingX + (isFront and advance or 0)
+      local y = startY + (r - 1) * spacingY
+      if isFront then
+        love.graphics.setColor(1.0, 0.55, 0.25)
+        love.graphics.rectangle("fill", x - 1, y - 1, 8, 8)
       else
-        love.graphics.setColor(0.85, 0.25, 0.25)
+        if run.mode == "charge" then
+          love.graphics.setColor(0.95, 0.35, 0.25)
+        else
+          love.graphics.setColor(0.85, 0.25, 0.25)
+        end
+        love.graphics.rectangle("fill", x, y, 6, 6)
       end
-      love.graphics.rectangle("fill", x, y, 6, 6)
     end
   end
 
