@@ -1,8 +1,10 @@
 local RNG = require("src.core.rng")
+local Ops = require("src.core.run_ops")
 local tuning = require("src.data.tuning")
 local enemyData = require("src.data.enemies")
 local waves = require("src.data.waves")
-local boons = require("src.data.boons")
+local boonModule = require("src.data.boons")
+local boons = boonModule.list
 
 local BoonPickState = require("src.states.boon_pick")
 local GameOverState = require("src.states.game_over")
@@ -38,13 +40,9 @@ function RunState.new(ctx, payload)
       wavesCleared = 0,
       inBoss = false,
       bossHP = enemyData.godking.hp,
-      mod = {
-        holdDpsMul = 1,
-        chargeDpsMul = 1,
-        holdLossMul = 1,
-        chargeLossMul = 1,
-        rageGainMul = 1,
-      },
+      mod = Ops.defaultMod(),
+      boons = {},
+      takenBoons = {},
       enemies = {},
       spawnCursor = 1,
       waveClock = 0,
@@ -74,6 +72,7 @@ function RunState.new(ctx, payload)
       self.run.rows[r] = 25
       self.run.rowDeath[r] = 0
     end
+    self.run.spartans = Ops.spartansAlive(self.run)
   end
 
   self:initWaveIfNeeded()
@@ -81,11 +80,7 @@ function RunState.new(ctx, payload)
 end
 
 function RunState:spartansAlive()
-  local total = 0
-  for r = 1, #self.run.rows do
-    total = total + self.run.rows[r]
-  end
-  return total
+  return Ops.spartansAlive(self.run)
 end
 
 function RunState:initWaveIfNeeded()
@@ -142,12 +137,35 @@ end
 
 function RunState:pickBoons(n)
   local run = self.run
+  -- archetype affinity: more weight to archetypes already picked
+  local archCount = {}
+  for _, b in ipairs(run.boons or {}) do
+    archCount[b.archetype] = (archCount[b.archetype] or 0) + 1
+  end
+
+  local pool = {}
+  for _, b in ipairs(boons) do
+    local taken = run.takenBoons[b.id]
+    if (not taken) or b.stackable then
+      local weight = (b.rarity == "common" and 6) or (b.rarity == "uncommon" and 3) or 1
+      weight = weight * (1 + (archCount[b.archetype] or 0) * 0.4)
+      -- penalty for repeats so stackables don't always dominate
+      if taken then weight = weight * 0.5 end
+      for _ = 1, math.max(1, math.floor(weight)) do
+        table.insert(pool, b)
+      end
+    end
+  end
+
+  if #pool == 0 then return {} end
   local picked, used = {}, {}
-  while #picked < n do
-    local idx = run.rng:range(1, #boons)
-    if not used[idx] then
-      used[idx] = true
-      table.insert(picked, boons[idx])
+  local attempts = 0
+  while #picked < n and attempts < 400 do
+    attempts = attempts + 1
+    local b = pool[run.rng:range(1, #pool)]
+    if not used[b.id] then
+      used[b.id] = true
+      table.insert(picked, b)
     end
   end
   return picked
@@ -260,6 +278,12 @@ function RunState:updateEnemies(dt)
   for i = #run.enemies, 1, -1 do
     local e = run.enemies[i]
 
+    -- bleed tick
+    if e.bleedTimer and e.bleedTimer > 0 then
+      e.hp = e.hp - (e.bleedDps or 0) * dt
+      e.bleedTimer = e.bleedTimer - dt
+    end
+
     -- funnel: clamp y to the corridor at the enemy's current x
     local topB, botB = self:corridorBounds(e.x)
     if e.y < topB then e.y = topB end
@@ -277,9 +301,10 @@ function RunState:updateEnemies(dt)
       if e.x <= frontX then
         e.x = frontX
         local mul = (run.mode == "charge") and run.mod.chargeLossMul or run.mod.holdLossMul
+        local hpPer = tuning.spartan.spartanHp * run.mod.spartanHpMul
         run.rowDeath[row] = run.rowDeath[row] + e.damage * mul * dt
-        while run.rowDeath[row] >= tuning.spartan.spartanHp and run.rows[row] > 0 do
-          run.rowDeath[row] = run.rowDeath[row] - tuning.spartan.spartanHp
+        while run.rowDeath[row] >= hpPer and run.rows[row] > 0 do
+          run.rowDeath[row] = run.rowDeath[row] - hpPer
           run.rows[row] = run.rows[row] - 1
           run.hitFlash = math.max(run.hitFlash, 0.18)
           self:addShake(0.06, 3)
@@ -305,21 +330,29 @@ end
 
 function RunState:applySpartanDamage(dt)
   local run = self.run
-  local baseDps = tuning.spartan.holdDps
+  local mod = run.mod
+  local baseDps = (run.mode == "charge") and tuning.spartan.chargeDps or tuning.spartan.holdDps
+  local modeMul = (run.mode == "charge") and mod.chargeDpsMul or mod.holdDpsMul
+  baseDps = baseDps * modeMul * mod.allDpsMul
 
-  if run.mode == "charge" then
-    baseDps = tuning.spartan.chargeDps * run.mod.chargeDpsMul
-  else
-    baseDps = baseDps * run.mod.holdDpsMul
+  -- combo scaling
+  if mod.comboDamageBonus > 0 then
+    baseDps = baseDps * (1 + run.combo * mod.comboDamageBonus)
   end
 
+  -- last stand
+  if mod.lastStandThreshold > 0 and run.spartans <= mod.lastStandThreshold then
+    baseDps = baseDps * mod.lastStandMul
+  end
+
+  -- burst
   if run.burst then
-    baseDps = baseDps * tuning.rage.burstMultiplier
-    run.rage = math.max(0, run.rage - tuning.rage.chargeDrain * dt)
+    local burstMul = tuning.rage.burstMultiplier + mod.burstMulBonus
+    baseDps = baseDps * burstMul
+    run.rage = math.max(0, run.rage - tuning.rage.chargeDrain * mod.burstDrainMul * dt)
     if run.rage <= 0 then run.burst = false end
   end
 
-  -- Engage only enemies within range of the (moving) front line.
   local frontX, engageRange = self:frontMetrics()
   local engageMax = frontX + engageRange
 
@@ -330,31 +363,31 @@ function RunState:applySpartanDamage(dt)
     end
   end
 
-  -- Front-N targeting (closest to wall first) so DPS doesn't dilute infinitely.
   if #engaged > 0 then
     table.sort(engaged, function(a, b) return a.x < b.x end)
     local maxTargets = (run.mode == "charge") and 8 or 4
     local n = math.min(#engaged, maxTargets)
     local each = baseDps / n
     for i = 1, n do
-      engaged[i].hp = engaged[i].hp - each * dt
+      local target = engaged[i]
+      local dmg = each * dt
+      -- crit
+      if mod.critChance > 0 and run.rng:next() < mod.critChance then
+        dmg = dmg * mod.critMul
+      end
+      target.hp = target.hp - dmg
+      -- apply bleed
+      if mod.bleedDps > 0 then
+        local bdps = mod.bleedDps * mod.bleedDpsMul
+        if (target.bleedDps or 0) < bdps then target.bleedDps = bdps end
+        target.bleedTimer = mod.bleedDuration * mod.bleedDurationMul
+      end
     end
   end
 end
 
 function RunState:killRandomSpartans(count)
-  local run = self.run
-  while count > 0 do
-    local alive = {}
-    for r = 1, #run.rows do
-      if run.rows[r] > 0 then table.insert(alive, r) end
-    end
-    if #alive == 0 then break end
-    local r = alive[run.rng:range(1, #alive)]
-    run.rows[r] = run.rows[r] - 1
-    count = count - 1
-  end
-  run.spartans = self:spartansAlive()
+  Ops.killRandomSpartans(self.run, count)
 end
 
 function RunState:updateCombo(dt)
@@ -615,6 +648,48 @@ function RunState:drawBattlefield()
   end
 end
 
+function RunState:drawBoonsHud()
+  local run = self.run
+  if not run.boons or #run.boons == 0 then return end
+  local v = self.ctx.view
+  local f = self.ctx.fonts
+  love.graphics.setFont(f.sm)
+
+  -- Aggregate stacked boons
+  local order, byId = {}, {}
+  for _, b in ipairs(run.boons) do
+    if not byId[b.id] then
+      byId[b.id] = { name = b.name, count = 0, archetype = b.archetype, rarity = b.rarity }
+      table.insert(order, b.id)
+    end
+    byId[b.id].count = byId[b.id].count + 1
+  end
+
+  local x = 24
+  local y = v.H - 28
+  love.graphics.setColor(0.7, 0.62, 0.5)
+  love.graphics.print("BOONS", x, y - 20)
+
+  local boonModule = require("src.data.boons")
+  local cursorX = x
+  for _, id in ipairs(order) do
+    local b = byId[id]
+    local label = b.name .. (b.count > 1 and (" x" .. b.count) or "")
+    local archColor = boonModule.archColor(b.archetype)
+    local rarColor = boonModule.rarityColor(b.rarity)
+    local tw = f.sm:getWidth(label) + 16
+    if cursorX + tw > v.W - 24 then break end
+
+    love.graphics.setColor(archColor[1], archColor[2], archColor[3], 0.25)
+    love.graphics.rectangle("fill", cursorX, y, tw, 22)
+    love.graphics.setColor(rarColor)
+    love.graphics.rectangle("line", cursorX, y, tw, 22)
+    love.graphics.setColor(0.95, 0.88, 0.72)
+    love.graphics.print(label, cursorX + 8, y + 4)
+    cursorX = cursorX + tw + 8
+  end
+end
+
 function RunState:drawUI()
   local run = self.run
   local v = self.ctx.view
@@ -672,6 +747,8 @@ function RunState:drawUI()
     love.graphics.printf("PAUSED", 0, h * 0.45, w, "center")
     love.graphics.printf("Press P to resume", 0, h * 0.52, w, "center")
   end
+
+  self:drawBoonsHud()
 end
 
 function RunState:drawParticles()
@@ -737,6 +814,8 @@ function RunState:setCharge(active)
     self:addHitstop(0.06)
     self:spawnBlood(tuning.battlefield.leftX + 220, (tuning.battlefield.topY + tuning.battlefield.bottomY) / 2, 40)
     self:emitSfx("burst")
+  elseif not active then
+    run.burst = false
   end
 end
 
