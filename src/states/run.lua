@@ -209,12 +209,15 @@ function RunState:phalanxLayout()
   return startX, startY, fieldW, fieldH
 end
 
+function RunState:staticFrontX()
+  local startX, _, fieldW = self:phalanxLayout()
+  return startX + fieldW + PHALANX_BASE_PAD
+end
+
 function RunState:frontMetrics()
   local run = self.run
-  local startX, _, fieldW = self:phalanxLayout()
-  local baseFront = startX + fieldW + PHALANX_BASE_PAD
-  local frontX = baseFront + (run.frontAdvance or 0)
-  local engageRange = run.mode == "charge" and 220 or 90
+  local frontX = self:staticFrontX() + (run.frontAdvance or 0)
+  local engageRange = (run.mode == "charge") and 55 or 35
   return frontX, engageRange
 end
 
@@ -234,14 +237,15 @@ function RunState:corridorBounds(x)
   local farTop = bf.topY - 40
   local farBot = bf.bottomY + 40
 
-  local frontX = self:frontMetrics()
+  -- Strait geometry is fixed: pinch is anchored at the static front,
+  -- regardless of charge advance (the cliffs don't move).
+  local pinchX = self:staticFrontX()
   local farX = bf.rightX + 40
 
-  if x <= frontX then return nearTop, nearBot end
+  if x <= pinchX then return nearTop, nearBot end
   if x >= farX then return farTop, farBot end
 
-  -- ease (smoothstep) so funnel pinches harder near the front
-  local t = (x - frontX) / (farX - frontX)
+  local t = (x - pinchX) / (farX - pinchX)
   t = t * t * (3 - 2 * t)
   local top = nearTop + (farTop - nearTop) * t
   local bot = nearBot + (farBot - nearBot) * t
@@ -442,7 +446,7 @@ end
 
 function RunState:updateFrontAdvance(dt)
   local run = self.run
-  local target = (run.mode == "charge") and 90 or 0
+  local target = (run.mode == "charge") and 170 or 0
   local rate = 6
   local delta = target - run.frontAdvance
   run.frontAdvance = run.frontAdvance + delta * math.min(1, dt * rate)
@@ -507,7 +511,7 @@ end
 
 function RunState:drawStrait()
   local bf = tuning.battlefield
-  local frontX = self:frontMetrics()
+  local frontX = self:staticFrontX()
   local farX = bf.rightX + 40
   local samples = 30
   local topRoof = bf.topY - 80
