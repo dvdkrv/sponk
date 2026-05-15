@@ -6,7 +6,8 @@ function MenuState.new(ctx)
 end
 
 function MenuState:draw()
-  local w, h = love.graphics.getDimensions()
+  local v = self.ctx.view
+  local w, h = v.W, v.H
   local f = self.ctx.fonts
   love.graphics.setFont(f.lg)
   love.graphics.setColor(0.92, 0.85, 0.72)

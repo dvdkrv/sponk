@@ -169,7 +169,7 @@ end
 
 function RunState:updateEnemies(dt)
   local run = self.run
-  local frontX = tuning.battlefield.leftX + 160
+  local frontX = tuning.battlefield.leftX + 396
   for i = #run.enemies, 1, -1 do
     local e = run.enemies[i]
     e.x = e.x - e.speed * dt
@@ -393,9 +393,9 @@ function RunState:drawBattlefield()
 
   -- battlefield panels
   love.graphics.setColor(0.10, 0.05, 0.05)
-  love.graphics.rectangle("fill", bf.leftX, bf.topY - 50, 450, bf.bottomY - bf.topY + 100)
+  love.graphics.rectangle("fill", bf.leftX, bf.topY - 50, 470, bf.bottomY - bf.topY + 100)
   love.graphics.setColor(0.13, 0.06, 0.08)
-  love.graphics.rectangle("fill", bf.leftX + 460, bf.topY - 50, bf.rightX - (bf.leftX + 460), bf.bottomY - bf.topY + 100)
+  love.graphics.rectangle("fill", bf.leftX + 480, bf.topY - 50, bf.rightX - (bf.leftX + 480), bf.bottomY - bf.topY + 100)
 
   -- lanes
   for lane = 1, bf.laneCount do
@@ -404,23 +404,43 @@ function RunState:drawBattlefield()
     love.graphics.rectangle("fill", bf.leftX, y - 3, bf.rightX - bf.leftX, 6)
   end
 
-  -- front line
-  love.graphics.setColor(0.76, 0.15, 0.15)
-  love.graphics.rectangle("fill", bf.leftX + 140, bf.topY - 20, 18, bf.bottomY - bf.topY + 40)
-
-  -- spartans as dots (capped visual count)
+  -- spartans as a living phalanx (animated dots)
   local visual = math.min(run.spartans, 300)
-  local cols = 30
-  local spacingX, spacingY = 12, 12
-  local startX, startY = bf.leftX + 20, bf.topY
+  local cols = 25
+  local spacingX, spacingY = 14, 18
+  local fieldW = (cols - 1) * spacingX
+  local rowsTotal = math.ceil(300 / cols)
+  local fieldH = (rowsTotal - 1) * spacingY
+  local startX = bf.leftX + 30
+  local startY = bf.topY + ((bf.bottomY - bf.topY) - fieldH) / 2
+  local t = run.time
+  local mode = run.mode
+  local sway = (mode == "charge") and 6 or 2
+  local bobAmp = (mode == "charge") and 2.5 or 1.2
+  local bobSpeed = (mode == "charge") and 8 or 4
+
   for i = 1, visual do
     local col = (i - 1) % cols
     local row = math.floor((i - 1) / cols)
-    local x = startX + col * spacingX
-    local y = startY + row * spacingY
-    love.graphics.setColor(0.85, 0.25, 0.25)
+    local phase = col * 0.3 + row * 0.7
+    local bx = math.sin(t * bobSpeed * 0.5 + phase) * sway
+    local by = math.sin(t * bobSpeed + phase) * bobAmp
+    local x = startX + col * spacingX + bx
+    local y = startY + row * spacingY + by
+    if mode == "charge" then
+      love.graphics.setColor(0.95, 0.35, 0.25)
+    else
+      love.graphics.setColor(0.85, 0.25, 0.25)
+    end
     love.graphics.rectangle("fill", x, y, 6, 6)
   end
+
+  -- front line (positioned just past the phalanx)
+  local lineX = startX + fieldW + 22
+  love.graphics.setColor(0.55, 0.1, 0.1)
+  love.graphics.rectangle("fill", lineX, bf.topY - 20, 6, bf.bottomY - bf.topY + 40)
+  love.graphics.setColor(0.9, 0.2, 0.2)
+  love.graphics.rectangle("fill", lineX + 6, bf.topY - 20, 2, bf.bottomY - bf.topY + 40)
 
   -- enemies
   for _, e in ipairs(run.enemies) do
@@ -438,13 +458,14 @@ function RunState:drawBattlefield()
   -- hit flash
   if run.hitFlash > 0 then
     love.graphics.setColor(0.8, 0.1, 0.1, run.hitFlash)
-    love.graphics.rectangle("fill", 0, 0, love.graphics.getDimensions())
+    love.graphics.rectangle("fill", 0, 0, self.ctx.view.W, self.ctx.view.H)
   end
 end
 
 function RunState:drawUI()
   local run = self.run
-  local w, h = love.graphics.getDimensions()
+  local v = self.ctx.view
+  local w, h = v.W, v.H
   local f = self.ctx.fonts
 
   love.graphics.setFont(f.sm)

@@ -16,7 +16,8 @@ function GameOverState.new(ctx, payload)
 end
 
 function GameOverState:draw()
-  local w, h = love.graphics.getDimensions()
+  local v = self.ctx.view
+  local w, h = v.W, v.H
   local f = self.ctx.fonts
 
   love.graphics.setFont(f.lg)

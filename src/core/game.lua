@@ -1,6 +1,7 @@
 local StateManager = require("src.core.state_manager")
 local Save = require("src.core.save")
 local Audio = require("src.core.audio")
+local View = require("src.core.view")
 
 local MenuState = require("src.states.menu")
 
@@ -22,6 +23,7 @@ function Game.load()
       md = love.graphics.newFont(20),
       lg = love.graphics.newFont(34),
     },
+    view = View,
   }
 
   manager:switch(MenuState.new(Game.ctx))
@@ -32,7 +34,9 @@ function Game.update(dt)
 end
 
 function Game.draw()
+  View.apply()
   Game.manager:draw()
+  View.unapply()
 end
 
 function Game.keypressed(key)
@@ -46,11 +50,13 @@ function Game.keyreleased(key)
 end
 
 function Game.mousepressed(x, y, button)
-  Game.manager:mousepressed(x, y, button)
+  local vx, vy = View.toVirtual(x, y)
+  Game.manager:mousepressed(vx, vy, button)
 end
 
 function Game.mousereleased(x, y, button)
-  Game.manager:mousereleased(x, y, button)
+  local vx, vy = View.toVirtual(x, y)
+  Game.manager:mousereleased(vx, vy, button)
 end
 
 return Game

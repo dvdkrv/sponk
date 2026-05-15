@@ -10,7 +10,8 @@ function BoonPickState.new(ctx, payload)
 end
 
 function BoonPickState:draw()
-  local w, h = love.graphics.getDimensions()
+  local v = self.ctx.view
+  local w, h = v.W, v.H
   local f = self.ctx.fonts
   love.graphics.setFont(f.md)
   love.graphics.setColor(0.95, 0.85, 0.65)
