@@ -3,19 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PHALANX — 300 Souls. One Last Stand.</title>
+    <title>PHALANX — 300 Spartans. Blood. Glory.</title>
     <meta
       name="description"
-      content="A pixel-art roguelike where 300 Spartans fight as a match-3 phalanx against the endless Persian tide. Every death is permanent. The God King awaits."
+      content="An arcade survival roguelite: start with 300 Spartans, hold the line, trigger brutal charges, and watch every loss persist until the God King fight."
     />
     <meta name="theme-color" content="#0a0605" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="PHALANX — 300 Souls. One Last Stand." />
+    <meta property="og:title" content="PHALANX — 300 Spartans. Blood. Glory." />
     <meta
       property="og:description"
-      content="A pixel-art roguelike match-3 about 300 Spartans, permadeath, and a final showdown with the Persian God King."
+      content="Arcade survival with 300 finite Spartans, rage charges, wave boons, and a final damage race against the God King."
     />
     <meta property="og:image" content="./assets/og.png" />
 
@@ -51,7 +51,7 @@
           <li><a href="#pitch">The Pitch</a></li>
           <li><a href="#pillars">Features</a></li>
           <li><a href="#how">How It Plays</a></li>
-          <li><a href="#bonfire">Bonfire</a></li>
+          <li><a href="#boons">Boons</a></li>
           <li><a href="#wishlist">Wishlist</a></li>
         </ul>
       </nav>
@@ -65,14 +65,14 @@
         </div>
 
         <div class="hero-inner">
-          <p class="kicker">A roguelike phalanx-builder</p>
+          <p class="kicker">An arcade survival roguelite</p>
           <h1 class="title">
             <span class="title-line">PHALANX</span>
           </h1>
-          <p class="tagline">300 Souls. One Last Stand.</p>
+          <p class="tagline">300 Spartans. Blood. Glory.</p>
           <p class="lede">
-            Match. Deploy. Bleed. Every Spartan you lose is gone for the rest of
-            the run. Survive until dawn breaks on the <em>God King</em>.
+            Hold the line. Trigger charges. Every death is permanent for the run.
+            Survive the waves and spend what remains against the <em>God King</em>.
           </p>
 
           <div class="cta-row">
@@ -83,7 +83,7 @@
           </div>
 
           <ul class="hero-meta" aria-label="At a glance">
-            <li><strong>Genre</strong> Match‑3 Roguelike</li>
+            <li><strong>Genre</strong> Arcade Survival Roguelite</li>
             <li><strong>Engine</strong> Pixel Art · 2D</li>
             <li><strong>Platforms</strong> PC · Mac · Linux</li>
             <li><strong>Status</strong> In Development</li>
@@ -98,23 +98,20 @@
             <span class="section-num">01</span> The Pitch
           </h2>
           <p class="big-quote">
-            “<strong>Balatro</strong> meets <strong>Candy Crush</strong> meets
-            <strong>Plants vs. Zombies</strong> — with the soul of
-            <strong>Thermopylae</strong>.”
+            “<strong>300</strong> men. <strong>Endless waves</strong>. One final
+            race against the <strong>God King</strong>.”
           </p>
           <p class="body">
-            You command 300 Spartans arranged in a tactical grid. Slide them to
-            form matching groups — when they connect, they charge from the
-            phalanx and strike the Persian line. The horde keeps coming, turn
-            after turn, advancing in patterns dictated by their unit type. Every
-            night you huddle at the bonfire, choose an upgrade, and steel
-            yourself for the next dawn.
+            PHALANX is pure action: your line auto-fights while Persians flood in
+            from the right. You decide when to hold and when to unleash a brutal
+            charge that clears enemies fast but burns through your own Spartans.
+            Every loss is permanent for the run.
           </p>
           <p class="body">
-            At the end of the run, the
-            <strong>Persian God King</strong> stands waiting. He is a damage
-            check. He is a high‑score. He is the only thing between you and a
-            legend.
+            Between waves, choose one of three boons to shape your build:
+            damage, rage, sustain, or risk. Reach the final battle, dump
+            everything into the <strong>Persian God King</strong>, and post a
+            score worthy of bronze.
           </p>
         </div>
       </section>
@@ -135,11 +132,10 @@
                   <rect x="6" y="12" width="4" height="3" />
                 </svg>
               </div>
-              <h3>Match the Phalanx</h3>
+              <h3>Hold vs Charge</h3>
               <p>
-                Drag Spartans across the grid. Line up matching units and they
-                surge out of formation, smashing into the enemy on the same
-                turn.
+                Moment to moment is simple: HOLD for stable survival, CHARGE for
+                explosive kills. Every charge is power now for lives later.
               </p>
             </li>
             <li class="pillar">
@@ -152,10 +148,10 @@
                   <rect x="1" y="10" width="14" height="2" />
                 </svg>
               </div>
-              <h3>Permadeath, Always</h3>
+              <h3>300 Is Your Health Bar</h3>
               <p>
-                Lose a Spartan and he is gone — not just for the fight, but for
-                the entire run. The phalanx only ever gets smaller.
+                Lose a Spartan and he is gone for the run. The number only moves
+                one direction. Your best moments are expensive.
               </p>
             </li>
             <li class="pillar">
@@ -168,11 +164,10 @@
                   <rect x="7" y="10" width="2" height="4" />
                 </svg>
               </div>
-              <h3>Roguelike Forging</h3>
+              <h3>Wave Boons & Builds</h3>
               <p>
-                Each night at the bonfire, choose upgrades that reshape your
-                run — elite spears, oracle blessings, cursed relics. No two
-                stands are the same.
+                After each wave, pick 1 of 3 boons. Stack rage gain, crit blood,
+                sustain, or glass-cannon charge and chase absurd runs.
               </p>
             </li>
           </ul>
@@ -186,49 +181,47 @@
             <span class="section-num">03</span> How It Plays
           </h2>
 
-          <!-- Phalanx grid -->
+          <!-- Frontline pressure -->
           <article class="row">
             <div class="row-text">
-              <h3>The Phalanx Grid</h3>
+              <h3>Hold the Line</h3>
               <p>
-                The left side of the battlefield is your matrix of Spartans.
-                Slide a soldier to form groups of three or more of the same
-                unit. On match, they charge — the bigger the chain, the harder
-                they hit.
+                Your Spartans form a living wall on the left. In HOLD mode they
+                fight efficiently and bleed slowly. Use it to stabilize and set
+                up your burst windows.
               </p>
               <ul class="checklist">
-                <li>Hoplites — reliable midline damage</li>
-                <li>Spear-bearers — pierce through enemy ranks</li>
-                <li>Shield-bearers — soak counterattacks</li>
-                <li>Captains — wildcards that match anything</li>
+                <li>Low casualties, steady pressure</li>
+                <li>Builds combo and rage safely</li>
+                <li>Best against dense mixed waves</li>
+                <li>Buys time for big decisions</li>
               </ul>
             </div>
             <div class="row-visual">
               <div
                 class="grid-demo"
                 role="img"
-                aria-label="Animated 5 by 5 Spartan phalanx grid"
+                aria-label="Animated Spartan frontline under pressure"
               >
                 <!-- 5x5 cells populated by JS -->
               </div>
-              <p class="caption">A live look at the match-3 phalanx.</p>
+              <p class="caption">The line holds — until you spend it.</p>
             </div>
           </article>
 
           <!-- Persian advance -->
           <article class="row reverse">
             <div class="row-text">
-              <h3>The Persian Advance</h3>
+              <h3>Charge for Blood</h3>
               <p>
-                Right‑to‑left, turn after turn, the empire comes. Each unit
-                follows its own movement pattern — archers hang back, immortals
-                march in lockstep, war elephants trample two ranks at once.
-                Read the formation. Plan your matches.
+                When the line starts to buckle, trigger CHARGE. Your Spartans
+                surge forward and erase lanes in violent bursts — at a brutal
+                cost to your own count.
               </p>
               <ul class="checklist">
-                <li>Telegraphed attacks every turn</li>
-                <li>Unit‑specific advance patterns</li>
-                <li>Elite enemies with deadly auras</li>
+                <li>Massive clear speed and blood spray</li>
+                <li>Fast combo spikes and rage gain</li>
+                <li>Higher self-casualties per second</li>
               </ul>
             </div>
             <div class="row-visual">
@@ -248,34 +241,33 @@
                   ><span class="enemy">✦</span><span class="enemy">⚔</span>
                 </div>
               </div>
-              <p class="caption">Right-to-left. Always coming.</p>
+              <p class="caption">Power now. Survivors later.</p>
             </div>
           </article>
 
-          <!-- Bonfire -->
-          <article id="bonfire" class="row">
+          <!-- Boons -->
+          <article id="boons" class="row">
             <div class="row-text">
-              <h3>The Bonfire</h3>
+              <h3>Wave Boons</h3>
               <p>
-                When night falls, the fighting stops. Gather around the fire.
-                Pick from three offerings — a relic, a blessing, or a curse with
-                teeth. Bury your dead. Sharpen your spears. Tomorrow they come
-                again.
+                Between waves, choose one of three boons. This is where your run
+                gets its identity: rage engine, sustain wall, or reckless
+                charge-machine.
               </p>
               <ul class="checklist">
-                <li>Three offerings per night</li>
-                <li>Synergistic builds — bleed, fury, oracle, bronze</li>
-                <li>Optional cursed relics for high‑risk runs</li>
+                <li>Pick 1 of 3 after each wave</li>
+                <li>Stackable synergies and spike moments</li>
+                <li>Simple choices, huge consequences</li>
               </ul>
             </div>
             <div class="row-visual">
-              <div class="bonfire-demo" aria-hidden="true">
+              <div class="boons-demo" aria-hidden="true">
                 <div class="flame f1"></div>
                 <div class="flame f2"></div>
                 <div class="flame f3"></div>
                 <div class="logs"></div>
               </div>
-              <p class="caption">Choose well. The dead are watching.</p>
+              <p class="caption">One pick. One direction.</p>
             </div>
           </article>
 
@@ -290,9 +282,9 @@
                 exchange. Survive, and your score is written in bronze.
               </p>
               <ul class="checklist">
-                <li>Pure damage‑race finale</li>
-                <li>Global leaderboards every run</li>
-                <li>Daily challenge seed for the brave</li>
+                <li>Pure damage-race finale</li>
+                <li>Score scales with survivors + damage</li>
+                <li>One last all-in decision loop</li>
               </ul>
             </div>
             <div class="row-visual">
@@ -355,11 +347,10 @@
             <span class="section-num">05</span> Frequently Asked
           </h2>
           <details>
-            <summary>Is this really like Balatro and Candy Crush had a child?</summary>
+            <summary>What do I actually do moment to moment?</summary>
             <p>
-              Yes, and that child grew up in Sparta. The board mechanics are
-              tile‑matching, but the meta-progression and build variety lean
-              roguelike deckbuilder.
+              Hold the line to stabilize, then trigger charge windows for burst
+              kills. The core decision is always power now versus casualties now.
             </p>
           </details>
           <details>
@@ -372,14 +363,14 @@
           <details>
             <summary>Will there be a demo?</summary>
             <p>
-              Yes, a vertical slice is planned for the next Steam Next Fest.
-              Wishlist to be notified.
+              Yes — a combat-first prototype with waves, boons, and a God King
+              finale is the first milestone.
             </p>
           </details>
           <details>
             <summary>Can I help test?</summary>
             <p>
-              Join the dev letter above — we send closed beta keys in waves.
+              Yes. Join the dev letter above — we send prototype builds in waves.
             </p>
           </details>
         </div>

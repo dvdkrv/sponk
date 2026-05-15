@@ -38,7 +38,7 @@
   );
   revealEls.forEach((el) => io.observe(el));
 
-  // ---------- Match-3 phalanx grid demo ----------
+  // ---------- Frontline pressure demo ----------
   const gridEl = document.querySelector(".grid-demo");
   if (gridEl) {
     const TYPES = ["t-hop", "t-spr", "t-shd", "t-cap"];
@@ -60,46 +60,37 @@
     }
 
     const randType = () => TYPES[Math.floor(Math.random() * TYPES.length)];
+    const resetCell = (cell) => {
+      const t = randType();
+      cell.className = "cell " + t;
+      cell.textContent = GLYPHS[t];
+    };
+
     function fill() {
-      cells.forEach((c) => {
-        const t = randType();
-        c.className = "cell " + t;
-        c.textContent = GLYPHS[t];
-      });
+      cells.forEach(resetCell);
     }
 
-    // pick a random row and force-match it for the demo
-    function stagedMatch() {
+    function pressurePulse() {
       fill();
-      // pick row, set 3-4 same type
-      const row = Math.floor(Math.random() * ROWS);
-      const type = randType();
-      const len = 3 + Math.floor(Math.random() * 2);
-      const start = Math.floor(Math.random() * (COLS - len + 1));
-      for (let x = 0; x < len; x++) {
-        const i = row * COLS + (start + x);
-        cells[i].className = "cell " + type;
-        cells[i].textContent = GLYPHS[type];
-      }
-      // play sequence
+      const casualties = 3 + Math.floor(Math.random() * 5);
+      const picked = new Set();
+      while (picked.size < casualties) picked.add(Math.floor(Math.random() * cells.length));
+
       setTimeout(() => {
-        for (let x = 0; x < len; x++) {
-          const i = row * COLS + (start + x);
-          cells[i].classList.add("match");
-        }
-      }, 600);
+        picked.forEach((i) => cells[i].classList.add("match"));
+      }, 450);
       setTimeout(() => {
-        for (let x = 0; x < len; x++) {
-          const i = row * COLS + (start + x);
-          cells[i].classList.add("gone");
-        }
-      }, 1400);
+        picked.forEach((i) => cells[i].classList.add("gone"));
+      }, 1000);
+      setTimeout(() => {
+        picked.forEach((i) => resetCell(cells[i]));
+      }, 1500);
     }
 
     let timer;
     const start = () => {
-      stagedMatch();
-      timer = setInterval(stagedMatch, 2600);
+      pressurePulse();
+      timer = setInterval(pressurePulse, 2400);
     };
     const stop = () => clearInterval(timer);
 

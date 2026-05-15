@@ -1,9 +1,9 @@
 # PHALANX — Landing Page
 
-Static landing page for **PHALANX** (working title) — a pixel-art roguelike match-3
-about the 300 Spartans, permadeath, and the Persian God King.
+Static landing page for **PHALANX** (working title) — an arcade survival roguelite
+about 300 Spartans, permanent losses, and the Persian God King.
 
-> Balatro × Candy Crush × Plants vs. Zombies, with the soul of Thermopylae.
+> 300 Spartans. Blood. Glory.
 
 Built as a single static site, deployed via GitHub Pages.
 
@@ -13,7 +13,7 @@ Built as a single static site, deployed via GitHub Pages.
 |------|---------|
 | `index.html` | Landing page |
 | `styles.css` | Pixel-art theme (Spartan bronze + blood) |
-| `script.js` | Mobile nav, scroll reveals, match-3 grid demo, signup form |
+| `script.js` | Mobile nav, scroll reveals, frontline pressure demo, signup form |
 | `404.html`  | Themed not-found page |
 | `favicon.svg` | Lambda shield favicon |
 | `.github/workflows/pages.yml` | Auto-deploy to GitHub Pages on push to `main` |
@@ -36,6 +36,7 @@ Live URL (once enabled): https://dvdkrv.github.io/sponk/
 ## To-do / nice next steps
 
 - Replace CSS-art placeholders with real pixel art (`assets/` folder).
+- Replace the abstract frontline demo with real combat GIF/video clips.
 - Add Open Graph image at `assets/og.png` (1200×630).
 - Wire the email form to a real backend (Buttondown, Resend, or a Cloudflare Worker).
 - Add a real Steam wishlist link once the app exists on Steamworks.
