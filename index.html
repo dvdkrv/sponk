@@ -3,19 +3,406 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>sponk</title>
+    <title>PHALANX — 300 Souls. One Last Stand.</title>
+    <meta
+      name="description"
+      content="A pixel-art roguelike where 300 Spartans fight as a match-3 phalanx against the endless Persian tide. Every death is permanent. The God King awaits."
+    />
+    <meta name="theme-color" content="#0a0605" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PHALANX — 300 Souls. One Last Stand." />
+    <meta
+      property="og:description"
+      content="A pixel-art roguelike match-3 about 300 Spartans, permadeath, and a final showdown with the Persian God King."
+    />
+    <meta property="og:image" content="./assets/og.png" />
+
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>sponk</h1>
-      <p>Your GitHub Pages site is live 🎉</p>
-      <p>
-        Edit <code>index.html</code> and <code>styles.css</code> to customize this page.
-      </p>
-      <a class="button" href="https://github.com/dvdkrv/sponk" target="_blank" rel="noreferrer">
-        View repository
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="PHALANX home">
+        <span class="brand-mark" aria-hidden="true">Λ</span>
+        <span class="brand-text">PHALANX</span>
       </a>
+      <nav class="nav" aria-label="Primary">
+        <button
+          class="nav-toggle"
+          aria-expanded="false"
+          aria-controls="nav-list"
+        >
+          <span class="sr-only">Toggle navigation</span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+        <ul id="nav-list" class="nav-list">
+          <li><a href="#pitch">The Pitch</a></li>
+          <li><a href="#pillars">Features</a></li>
+          <li><a href="#how">How It Plays</a></li>
+          <li><a href="#bonfire">Bonfire</a></li>
+          <li><a href="#wishlist">Wishlist</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="main">
+      <!-- =================== HERO =================== -->
+      <section id="top" class="hero">
+        <div class="hero-bg" aria-hidden="true">
+          <div class="scanlines"></div>
+        </div>
+
+        <div class="hero-inner">
+          <p class="kicker">A roguelike phalanx-builder</p>
+          <h1 class="title">
+            <span class="title-line">PHALANX</span>
+          </h1>
+          <p class="tagline">300 Souls. One Last Stand.</p>
+          <p class="lede">
+            Match. Deploy. Bleed. Every Spartan you lose is gone for the rest of
+            the run. Survive until dawn breaks on the <em>God King</em>.
+          </p>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="#wishlist">
+              <span class="btn-icon">★</span> Wishlist on Steam
+            </a>
+            <a class="btn btn-ghost" href="#how">See the Gameplay</a>
+          </div>
+
+          <ul class="hero-meta" aria-label="At a glance">
+            <li><strong>Genre</strong> Match‑3 Roguelike</li>
+            <li><strong>Engine</strong> Pixel Art · 2D</li>
+            <li><strong>Platforms</strong> PC · Mac · Linux</li>
+            <li><strong>Status</strong> In Development</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- =================== PITCH =================== -->
+      <section id="pitch" class="section pitch">
+        <div class="container narrow">
+          <h2 class="section-title">
+            <span class="section-num">01</span> The Pitch
+          </h2>
+          <p class="big-quote">
+            “<strong>Balatro</strong> meets <strong>Candy Crush</strong> meets
+            <strong>Plants vs. Zombies</strong> — with the soul of
+            <strong>Thermopylae</strong>.”
+          </p>
+          <p class="body">
+            You command 300 Spartans arranged in a tactical grid. Slide them to
+            form matching groups — when they connect, they charge from the
+            phalanx and strike the Persian line. The horde keeps coming, turn
+            after turn, advancing in patterns dictated by their unit type. Every
+            night you huddle at the bonfire, choose an upgrade, and steel
+            yourself for the next dawn.
+          </p>
+          <p class="body">
+            At the end of the run, the
+            <strong>Persian God King</strong> stands waiting. He is a damage
+            check. He is a high‑score. He is the only thing between you and a
+            legend.
+          </p>
+        </div>
+      </section>
+
+      <!-- =================== PILLARS =================== -->
+      <section id="pillars" class="section pillars">
+        <div class="container">
+          <h2 class="section-title">
+            <span class="section-num">02</span> Three Pillars
+          </h2>
+          <ul class="pillar-grid">
+            <li class="pillar">
+              <div class="pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" class="pixel-sprite">
+                  <rect x="6" y="2" width="4" height="2" />
+                  <rect x="5" y="4" width="6" height="2" />
+                  <rect x="4" y="6" width="8" height="6" />
+                  <rect x="6" y="12" width="4" height="3" />
+                </svg>
+              </div>
+              <h3>Match the Phalanx</h3>
+              <p>
+                Drag Spartans across the grid. Line up matching units and they
+                surge out of formation, smashing into the enemy on the same
+                turn.
+              </p>
+            </li>
+            <li class="pillar">
+              <div class="pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" class="pixel-sprite alt">
+                  <rect x="7" y="1" width="2" height="3" />
+                  <rect x="5" y="4" width="6" height="2" />
+                  <rect x="3" y="6" width="10" height="2" />
+                  <rect x="2" y="8" width="12" height="2" />
+                  <rect x="1" y="10" width="14" height="2" />
+                </svg>
+              </div>
+              <h3>Permadeath, Always</h3>
+              <p>
+                Lose a Spartan and he is gone — not just for the fight, but for
+                the entire run. The phalanx only ever gets smaller.
+              </p>
+            </li>
+            <li class="pillar">
+              <div class="pillar-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" class="pixel-sprite gold">
+                  <rect x="2" y="3" width="2" height="6" />
+                  <rect x="12" y="3" width="2" height="6" />
+                  <rect x="6" y="2" width="4" height="2" />
+                  <rect x="4" y="4" width="8" height="6" />
+                  <rect x="7" y="10" width="2" height="4" />
+                </svg>
+              </div>
+              <h3>Roguelike Forging</h3>
+              <p>
+                Each night at the bonfire, choose upgrades that reshape your
+                run — elite spears, oracle blessings, cursed relics. No two
+                stands are the same.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- =================== HOW IT PLAYS =================== -->
+      <section id="how" class="section how">
+        <div class="container">
+          <h2 class="section-title">
+            <span class="section-num">03</span> How It Plays
+          </h2>
+
+          <!-- Phalanx grid -->
+          <article class="row">
+            <div class="row-text">
+              <h3>The Phalanx Grid</h3>
+              <p>
+                The left side of the battlefield is your matrix of Spartans.
+                Slide a soldier to form groups of three or more of the same
+                unit. On match, they charge — the bigger the chain, the harder
+                they hit.
+              </p>
+              <ul class="checklist">
+                <li>Hoplites — reliable midline damage</li>
+                <li>Spear-bearers — pierce through enemy ranks</li>
+                <li>Shield-bearers — soak counterattacks</li>
+                <li>Captains — wildcards that match anything</li>
+              </ul>
+            </div>
+            <div class="row-visual">
+              <div
+                class="grid-demo"
+                role="img"
+                aria-label="Animated 5 by 5 Spartan phalanx grid"
+              >
+                <!-- 5x5 cells populated by JS -->
+              </div>
+              <p class="caption">A live look at the match-3 phalanx.</p>
+            </div>
+          </article>
+
+          <!-- Persian advance -->
+          <article class="row reverse">
+            <div class="row-text">
+              <h3>The Persian Advance</h3>
+              <p>
+                Right‑to‑left, turn after turn, the empire comes. Each unit
+                follows its own movement pattern — archers hang back, immortals
+                march in lockstep, war elephants trample two ranks at once.
+                Read the formation. Plan your matches.
+              </p>
+              <ul class="checklist">
+                <li>Telegraphed attacks every turn</li>
+                <li>Unit‑specific advance patterns</li>
+                <li>Elite enemies with deadly auras</li>
+              </ul>
+            </div>
+            <div class="row-visual">
+              <div class="advance-demo" aria-hidden="true">
+                <div class="lane">
+                  <span class="enemy">✦</span><span class="enemy">✦</span
+                  ><span class="enemy">✦</span>
+                </div>
+                <div class="lane">
+                  <span class="enemy">⚔</span><span class="enemy">⚔</span>
+                </div>
+                <div class="lane">
+                  <span class="enemy big">𓃰</span>
+                </div>
+                <div class="lane">
+                  <span class="enemy">✦</span><span class="enemy">⚔</span
+                  ><span class="enemy">✦</span><span class="enemy">⚔</span>
+                </div>
+              </div>
+              <p class="caption">Right-to-left. Always coming.</p>
+            </div>
+          </article>
+
+          <!-- Bonfire -->
+          <article id="bonfire" class="row">
+            <div class="row-text">
+              <h3>The Bonfire</h3>
+              <p>
+                When night falls, the fighting stops. Gather around the fire.
+                Pick from three offerings — a relic, a blessing, or a curse with
+                teeth. Bury your dead. Sharpen your spears. Tomorrow they come
+                again.
+              </p>
+              <ul class="checklist">
+                <li>Three offerings per night</li>
+                <li>Synergistic builds — bleed, fury, oracle, bronze</li>
+                <li>Optional cursed relics for high‑risk runs</li>
+              </ul>
+            </div>
+            <div class="row-visual">
+              <div class="bonfire-demo" aria-hidden="true">
+                <div class="flame f1"></div>
+                <div class="flame f2"></div>
+                <div class="flame f3"></div>
+                <div class="logs"></div>
+              </div>
+              <p class="caption">Choose well. The dead are watching.</p>
+            </div>
+          </article>
+
+          <!-- God King -->
+          <article class="row reverse final-row">
+            <div class="row-text">
+              <h3>The God King</h3>
+              <p>
+                At the end of every run, he is waiting. The Persian God King is
+                not a fight — he is a <em>damage check</em>. Whatever you have
+                left of your phalanx, throw it at him in a single, escalating
+                exchange. Survive, and your score is written in bronze.
+              </p>
+              <ul class="checklist">
+                <li>Pure damage‑race finale</li>
+                <li>Global leaderboards every run</li>
+                <li>Daily challenge seed for the brave</li>
+              </ul>
+            </div>
+            <div class="row-visual">
+              <div class="king" aria-hidden="true">
+                <div class="crown"></div>
+                <div class="face">
+                  <div class="eye left"></div>
+                  <div class="eye right"></div>
+                </div>
+                <div class="beard"></div>
+              </div>
+              <p class="caption">Xerxes-That-Was. The wall at the end.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- =================== WISHLIST =================== -->
+      <section id="wishlist" class="section wishlist">
+        <div class="container narrow center">
+          <h2 class="section-title">
+            <span class="section-num">04</span> Join the 300
+          </h2>
+          <p class="body">
+            Wishlist on Steam to be notified at launch, or get our dev letter —
+            no spam, just patch notes from the front line.
+          </p>
+
+          <form
+            class="signup"
+            id="signup-form"
+            novalidate
+            action="#"
+            method="post"
+          >
+            <label class="sr-only" for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="warrior@thermopylae.gr"
+              autocomplete="email"
+              required
+            />
+            <button type="submit" class="btn btn-primary">Enlist</button>
+            <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <div class="cta-row center">
+            <a class="btn btn-ghost" href="#" rel="noreferrer">Wishlist on Steam</a>
+            <a class="btn btn-ghost" href="https://github.com/dvdkrv/sponk" target="_blank" rel="noreferrer">Follow on GitHub</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================== FAQ =================== -->
+      <section class="section faq">
+        <div class="container narrow">
+          <h2 class="section-title">
+            <span class="section-num">05</span> Frequently Asked
+          </h2>
+          <details>
+            <summary>Is this really like Balatro and Candy Crush had a child?</summary>
+            <p>
+              Yes, and that child grew up in Sparta. The board mechanics are
+              tile‑matching, but the meta-progression and build variety lean
+              roguelike deckbuilder.
+            </p>
+          </details>
+          <details>
+            <summary>What happens when I lose all 300 Spartans?</summary>
+            <p>
+              The run ends — even before reaching the God King. Your high
+              score reflects how far you marched.
+            </p>
+          </details>
+          <details>
+            <summary>Will there be a demo?</summary>
+            <p>
+              Yes, a vertical slice is planned for the next Steam Next Fest.
+              Wishlist to be notified.
+            </p>
+          </details>
+          <details>
+            <summary>Can I help test?</summary>
+            <p>
+              Join the dev letter above — we send closed beta keys in waves.
+            </p>
+          </details>
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p class="footer-brand">
+          <span class="brand-mark" aria-hidden="true">Λ</span> PHALANX
+        </p>
+        <p class="footer-note">
+          © <span id="year"></span> Sponk Games. Working title. Art and copy are
+          pre‑alpha and subject to change.
+        </p>
+        <ul class="footer-links">
+          <li><a href="#top">Back to top</a></li>
+          <li><a href="https://github.com/dvdkrv/sponk">GitHub</a></li>
+          <li><a href="#wishlist">Wishlist</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script src="./script.js" defer></script>
   </body>
 </html>

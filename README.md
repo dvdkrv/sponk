@@ -1,20 +1,42 @@
-# sponk
+# PHALANX — Landing Page
 
-This repository is configured to deploy a static GitHub Pages site from the `main` branch using GitHub Actions.
+Static landing page for **PHALANX** (working title) — a pixel-art roguelike match-3
+about the 300 Spartans, permadeath, and the Persian God King.
+
+> Balatro × Candy Crush × Plants vs. Zombies, with the soul of Thermopylae.
+
+Built as a single static site, deployed via GitHub Pages.
 
 ## Files
 
-- `index.html` — homepage
-- `styles.css` — styling
-- `.github/workflows/pages.yml` — deployment workflow
+| File | Purpose |
+|------|---------|
+| `index.html` | Landing page |
+| `styles.css` | Pixel-art theme (Spartan bronze + blood) |
+| `script.js` | Mobile nav, scroll reveals, match-3 grid demo, signup form |
+| `404.html`  | Themed not-found page |
+| `favicon.svg` | Lambda shield favicon |
+| `.github/workflows/pages.yml` | Auto-deploy to GitHub Pages on push to `main` |
 
-## Publish steps
+## Local preview
 
-1. Push this repository to GitHub.
-2. In GitHub: **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-4. Push to `main` (or rerun the workflow) to deploy.
+```bash
+python3 -m http.server 8080
+# then open http://localhost:8080
+```
 
-Your site URL will be:
+## Deploy
 
-- `https://dvdkrv.github.io/sponk/`
+Push to `main`. The GitHub Actions workflow builds and publishes to GitHub Pages.
+
+In GitHub: **Settings → Pages → Source = GitHub Actions** (one-time).
+
+Live URL (once enabled): https://dvdkrv.github.io/sponk/
+
+## To-do / nice next steps
+
+- Replace CSS-art placeholders with real pixel art (`assets/` folder).
+- Add Open Graph image at `assets/og.png` (1200×630).
+- Wire the email form to a real backend (Buttondown, Resend, or a Cloudflare Worker).
+- Add a real Steam wishlist link once the app exists on Steamworks.
+- Add Datadog RUM or Cloudflare Web Analytics (see project notes).
